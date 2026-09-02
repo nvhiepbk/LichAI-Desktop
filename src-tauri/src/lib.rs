@@ -10,7 +10,7 @@ use tauri_plugin_opener::OpenerExt;
 use chrono::{Datelike, Local, NaiveDate};
 
 const BASE_URL: &str = "https://lich.ai.vn/";
-const ABOUT_URL: &str = "https://lich.ai.vn/?desktop=about";
+const ABOUT_URL: &str = "https://lich.ai.vn/about";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct DesktopSettings {
