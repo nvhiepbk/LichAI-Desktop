@@ -7,20 +7,33 @@
 <style>
 :root{font-family:"Segoe UI",Arial,sans-serif;color-scheme:dark}
 *{box-sizing:border-box}
-body{margin:0;background:#0d111a;color:#f5f7fb;overflow:hidden}
-.shell{padding:10px}
+html,body{margin:0;background:transparent!important;color:#f5f7fb;overflow:hidden}
+.shell{padding:8px;background:transparent;position:relative}
 .card{
-  border:1px solid rgba(255,255,255,.14); border-radius:22px; overflow:hidden;
+  position:relative;
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:24px;
+  overflow:hidden;
   background:
-    radial-gradient(circle at 15% 10%,rgba(255,185,70,.20),transparent 32%),
-    radial-gradient(circle at 82% 85%,rgba(69,99,255,.22),transparent 34%),
-    linear-gradient(145deg,#151923,#090d16 68%);
-  box-shadow:0 18px 50px rgba(0,0,0,.42);
+    radial-gradient(circle at 14% 9%,rgba(255,185,70,.17),transparent 31%),
+    radial-gradient(circle at 86% 88%,rgba(69,99,255,.18),transparent 35%),
+    linear-gradient(145deg,rgba(21,25,35,.97),rgba(9,13,22,.97) 68%);
+  box-shadow:0 16px 38px rgba(0,0,0,.36);
 }
-.top{display:flex;align-items:center;justify-content:space-between;padding:15px 17px 2px}
+.card::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:url("lichai-logo.png") center 62%/48% auto no-repeat;
+  opacity:.055;
+  pointer-events:none;
+  filter:saturate(.9);
+}
+.card > *{position:relative;z-index:1}
+.top{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 2px}
 .brand{font-weight:800;letter-spacing:.3px;font-size:14px}
 .close{border:0;background:transparent;color:#d9e1ef;font-size:20px;cursor:pointer;padding:2px 7px}
-.content{padding:10px 18px 18px}
+.content{padding:9px 17px 16px}
 .weekday{font-size:18px;font-weight:800;color:#f5bd57}
 .dateRow{display:flex;gap:14px;align-items:center;margin-top:1px}
 .day{font-size:76px;line-height:.95;font-weight:900;letter-spacing:-4px}

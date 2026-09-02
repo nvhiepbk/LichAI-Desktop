@@ -1,17 +1,8 @@
-# LichAI Desktop — Windows #03
+# LichAI Desktop — Windows #04
 
-Thay đổi theo phản hồi thực tế:
-- Hover tray icon: hiện **Dương lịch + Âm lịch + Can Chi năm**.
-- Click trái: mở **Lịch ngày LịchAI** native, không mở bảng option.
-- Lịch ngày có: ngày dương, ngày âm, Can Chi ngày/năm, giờ hoàng đạo, hướng tốt, sự kiện công cộng nếu có.
-- Click phải: chỉ còn đúng:
-  - About LịchAI
-  - Mở LịchAI
-  - Cài đặt
-- About mở trang web About.
-- Mở LịchAI mở `https://lich.ai.vn/` bằng trình duyệt mặc định.
-- Cài đặt là cửa sổ nhỏ riêng.
-- Nút Thoát được đưa vào Cài đặt, không làm rối menu chuột phải.
-- Web vẫn là lõi chính; Desktop không viết lại hệ thống tài khoản/ghi chú/sync.
-
-Build bằng workflow `LichAI Desktop Windows`.
+UI polish:
+- Bỏ nền chữ nhật đen bên ngoài flyout.
+- Cửa sổ native trong suốt; chỉ còn card LịchAI bo góc.
+- Tắt shadow native để không còn góc vuông đen.
+- Logo LịchAI chìm nhẹ phía sau nội dung lịch ngày và cài đặt.
+- Giữ nguyên tooltip Dương/Âm lịch, click trái mở Lịch ngày, click phải chỉ About / Mở LịchAI / Cài đặt.
