@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>LịchAI Desktop</title>
+  <style>
+    :root{font-family:Segoe UI,Arial,sans-serif;color-scheme:light dark}
+    *{box-sizing:border-box}
+    body{margin:0;background:transparent}
+    .card{margin:10px;border:1px solid rgba(127,127,127,.28);border-radius:14px;
+      padding:14px;background:rgba(28,31,38,.96);color:#f5f7fb;
+      box-shadow:0 12px 36px rgba(0,0,0,.25)}
+    .title{font-size:19px;font-weight:800;margin-bottom:3px}
+    .sub{font-size:12px;opacity:.72;margin-bottom:14px}
+    .row{display:flex;align-items:center;justify-content:space-between;gap:12px;
+      padding:9px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+    .row:last-of-type{border-bottom:0}
+    label{font-size:13px}
+    input[type=checkbox]{width:18px;height:18px}
+    button{width:100%;padding:9px 12px;margin-top:9px;border-radius:9px;
+      border:1px solid rgba(255,255,255,.18);background:#252a33;color:#fff;cursor:pointer}
+    button.primary{background:#2563eb;border-color:#2563eb;font-weight:700}
+    .foot{font-size:11px;opacity:.58;margin-top:10px;text-align:center}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="title">🗓️ LịchAI Desktop</div>
+    <div class="sub">Ứng dụng tray nhẹ • Web là lõi chính</div>
+
+    <div class="row"><label for="autostart">Khởi động cùng Windows</label><input id="autostart" type="checkbox"></div>
+    <div class="row"><label for="notify">Hiện thông báo</label><input id="notify" type="checkbox" checked></div>
+    <div class="row"><label for="dayicon">Hiện số ngày trên tray icon</label><input id="dayicon" type="checkbox" checked></div>
+
+    <button class="primary" id="openWeb">Mở LịchAI</button>
+    <button id="closeBtn">Ẩn xuống System Tray</button>
+    <div class="foot">Windows #01 • lich.ai.vn</div>
+  </div>
+
+<script>
+const invoke = window.__TAURI__.core.invoke;
+
+async function load() {
+  try {
+    document.querySelector('#autostart').checked = await invoke('autostart_status');
+    const settings = await invoke('get_settings');
+    document.querySelector('#notify').checked = settings.notifications;
+    document.querySelector('#dayicon').checked = settings.day_icon;
+  } catch (e) { console.error(e); }
+}
+
+document.querySelector('#autostart').addEventListener('change', async (e)=>{
+  await invoke('set_autostart', { enabled: e.target.checked });
+});
+document.querySelector('#notify').addEventListener('change', async (e)=>{
+  await invoke('set_setting', { key: 'notifications', value: e.target.checked });
+});
+document.querySelector('#dayicon').addEventListener('change', async (e)=>{
+  await invoke('set_setting', { key: 'day_icon', value: e.target.checked });
+});
+document.querySelector('#openWeb').addEventListener('click', ()=>invoke('open_lichai', { route: '' }));
+document.querySelector('#closeBtn').addEventListener('click', ()=>invoke('hide_main_window'));
+load();
+</script>
+</body>
+</html>
