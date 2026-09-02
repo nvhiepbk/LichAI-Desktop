@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "LichAI Desktop",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "identifier": "vn.ai.lich.desktop",
   "build": {
     "frontendDist": "../dist"
@@ -11,13 +11,13 @@
     "windows": [
       {
         "label": "main",
-        "title": "LịchAI Desktop",
-        "width": 360,
-        "height": 355,
+        "title": "LịchAI",
+        "width": 410,
+        "height": 455,
         "resizable": false,
         "maximizable": false,
-        "minimizable": true,
-        "decorations": true,
+        "minimizable": false,
+        "decorations": false,
         "visible": false,
         "alwaysOnTop": true,
         "skipTaskbar": true,

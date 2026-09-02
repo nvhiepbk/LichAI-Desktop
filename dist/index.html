@@ -1,67 +1,127 @@
 <!doctype html>
 <html lang="vi">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>LịchAI Desktop</title>
-  <style>
-    :root{font-family:Segoe UI,Arial,sans-serif;color-scheme:light dark}
-    *{box-sizing:border-box}
-    body{margin:0;background:transparent}
-    .card{margin:10px;border:1px solid rgba(127,127,127,.28);border-radius:14px;
-      padding:14px;background:rgba(28,31,38,.96);color:#f5f7fb;
-      box-shadow:0 12px 36px rgba(0,0,0,.25)}
-    .title{font-size:19px;font-weight:800;margin-bottom:3px}
-    .sub{font-size:12px;opacity:.72;margin-bottom:14px}
-    .row{display:flex;align-items:center;justify-content:space-between;gap:12px;
-      padding:9px 0;border-bottom:1px solid rgba(255,255,255,.08)}
-    .row:last-of-type{border-bottom:0}
-    label{font-size:13px}
-    input[type=checkbox]{width:18px;height:18px}
-    button{width:100%;padding:9px 12px;margin-top:9px;border-radius:9px;
-      border:1px solid rgba(255,255,255,.18);background:#252a33;color:#fff;cursor:pointer}
-    button.primary{background:#2563eb;border-color:#2563eb;font-weight:700}
-    .foot{font-size:11px;opacity:.58;margin-top:10px;text-align:center}
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LịchAI Desktop</title>
+<style>
+:root{font-family:"Segoe UI",Arial,sans-serif;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:#0d111a;color:#f5f7fb;overflow:hidden}
+.shell{padding:10px}
+.card{
+  border:1px solid rgba(255,255,255,.14); border-radius:22px; overflow:hidden;
+  background:
+    radial-gradient(circle at 15% 10%,rgba(255,185,70,.20),transparent 32%),
+    radial-gradient(circle at 82% 85%,rgba(69,99,255,.22),transparent 34%),
+    linear-gradient(145deg,#151923,#090d16 68%);
+  box-shadow:0 18px 50px rgba(0,0,0,.42);
+}
+.top{display:flex;align-items:center;justify-content:space-between;padding:15px 17px 2px}
+.brand{font-weight:800;letter-spacing:.3px;font-size:14px}
+.close{border:0;background:transparent;color:#d9e1ef;font-size:20px;cursor:pointer;padding:2px 7px}
+.content{padding:10px 18px 18px}
+.weekday{font-size:18px;font-weight:800;color:#f5bd57}
+.dateRow{display:flex;gap:14px;align-items:center;margin-top:1px}
+.day{font-size:76px;line-height:.95;font-weight:900;letter-spacing:-4px}
+.meta{font-size:17px;font-weight:700;line-height:1.5}
+.lunar{font-size:16px;color:#e5e9f2;margin-top:7px}
+.chi{font-size:12px;opacity:.72;margin-top:2px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.box{padding:10px 11px;border-radius:13px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.045)}
+.box .k{font-size:11px;opacity:.68;margin-bottom:4px}
+.box .v{font-size:12px;font-weight:700;line-height:1.35}
+.event{margin-top:10px;padding:9px 11px;border-radius:12px;background:rgba(214,45,45,.18);border:1px solid rgba(255,119,119,.24);font-size:12px;font-weight:700}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+button{border-radius:10px;border:1px solid rgba(255,255,255,.15);padding:9px 10px;background:#1c2330;color:#fff;cursor:pointer}
+button.primary{background:#2563eb;border-color:#2563eb;font-weight:800}
+.settings-title{font-size:20px;font-weight:850;margin-bottom:4px}
+.settings-sub{font-size:12px;opacity:.66;margin-bottom:13px}
+.row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.row:last-child{border-bottom:0}
+input[type=checkbox]{width:18px;height:18px}
+.foot{font-size:10px;opacity:.45;text-align:center;margin-top:11px}
+.hidden{display:none!important}
+</style>
 </head>
 <body>
-  <div class="card">
-    <div class="title">🗓️ LịchAI Desktop</div>
-    <div class="sub">Ứng dụng tray nhẹ • Web là lõi chính</div>
+<div class="shell">
+  <section id="todayView" class="card">
+    <div class="top"><div class="brand">🌙 LịchAI • Lịch ngày</div><button class="close" data-close>×</button></div>
+    <div class="content">
+      <div id="weekday" class="weekday">Hôm nay</div>
+      <div class="dateRow">
+        <div id="day" class="day">--</div>
+        <div class="meta"><div id="solar">--/--/----</div><div id="lunar" class="lunar">Âm --/--</div></div>
+      </div>
+      <div id="chi" class="chi"></div>
+      <div class="grid">
+        <div class="box"><div class="k">🕒 Giờ hoàng đạo</div><div id="hours" class="v"></div></div>
+        <div class="box"><div class="k">🧭 Hướng xuất hành tốt</div><div id="direction" class="v"></div></div>
+      </div>
+      <div id="event" class="event hidden"></div>
+      <div class="actions"><button class="primary" id="openWeb">Mở LịchAI</button><button id="settingsFromToday">Cài đặt</button></div>
+    </div>
+  </section>
 
-    <div class="row"><label for="autostart">Khởi động cùng Windows</label><input id="autostart" type="checkbox"></div>
-    <div class="row"><label for="notify">Hiện thông báo</label><input id="notify" type="checkbox" checked></div>
-    <div class="row"><label for="dayicon">Hiện số ngày trên tray icon</label><input id="dayicon" type="checkbox" checked></div>
-
-    <button class="primary" id="openWeb">Mở LịchAI</button>
-    <button id="closeBtn">Ẩn xuống System Tray</button>
-    <div class="foot">Windows #01 • lich.ai.vn</div>
-  </div>
+  <section id="settingsView" class="card hidden">
+    <div class="top"><div class="brand">⚙️ LịchAI Desktop</div><button class="close" data-close>×</button></div>
+    <div class="content">
+      <div class="settings-title">Cài đặt</div>
+      <div class="settings-sub">Tray nhẹ • Web là lõi chính</div>
+      <div class="row"><label for="autostart">Khởi động cùng Windows</label><input id="autostart" type="checkbox"></div>
+      <div class="row"><label for="notify">Hiện thông báo</label><input id="notify" type="checkbox" checked></div>
+      <button class="primary" id="openWeb2">Mở LịchAI</button>
+      <button id="aboutBtn">About LịchAI</button>
+      <button id="quitBtn">Thoát LịchAI Desktop</button>
+      <div class="foot">Windows #03 • lich.ai.vn</div>
+    </div>
+  </section>
+</div>
 
 <script>
 const invoke = window.__TAURI__.core.invoke;
+const today = document.querySelector('#todayView');
+const settings = document.querySelector('#settingsView');
 
-async function load() {
-  try {
-    document.querySelector('#autostart').checked = await invoke('autostart_status');
-    const settings = await invoke('get_settings');
-    document.querySelector('#notify').checked = settings.notifications;
-    document.querySelector('#dayicon').checked = settings.day_icon;
-  } catch (e) { console.error(e); }
+window.setLichAIMode = async (mode) => {
+  if (mode === 'settings') {
+    today.classList.add('hidden'); settings.classList.remove('hidden'); await loadSettings();
+  } else {
+    settings.classList.add('hidden'); today.classList.remove('hidden'); await loadToday();
+  }
+};
+
+async function loadToday(){
+  try{
+    const x = await invoke('get_today_info');
+    document.querySelector('#weekday').textContent=x.weekday;
+    document.querySelector('#day').textContent=x.day;
+    document.querySelector('#solar').textContent=x.solar;
+    document.querySelector('#lunar').textContent=`${x.lunar} • ${x.lunar_year_can_chi}`;
+    document.querySelector('#chi').textContent=`Ngày ${x.day_can_chi}`;
+    document.querySelector('#hours').textContent=x.good_hours;
+    document.querySelector('#direction').textContent=x.good_direction;
+    const ev=document.querySelector('#event');
+    if(x.event){ev.textContent=x.event; ev.classList.remove('hidden')} else ev.classList.add('hidden');
+  }catch(e){console.error(e)}
 }
-
-document.querySelector('#autostart').addEventListener('change', async (e)=>{
-  await invoke('set_autostart', { enabled: e.target.checked });
-});
-document.querySelector('#notify').addEventListener('change', async (e)=>{
-  await invoke('set_setting', { key: 'notifications', value: e.target.checked });
-});
-document.querySelector('#dayicon').addEventListener('change', async (e)=>{
-  await invoke('set_setting', { key: 'day_icon', value: e.target.checked });
-});
-document.querySelector('#openWeb').addEventListener('click', ()=>invoke('open_lichai', { route: '' }));
-document.querySelector('#closeBtn').addEventListener('click', ()=>invoke('hide_main_window'));
-load();
+async function loadSettings(){
+  try{
+    document.querySelector('#autostart').checked=await invoke('autostart_status');
+    const s=await invoke('get_settings');
+    document.querySelector('#notify').checked=s.notifications;
+  }catch(e){console.error(e)}
+}
+document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>invoke('hide_main_window'));
+document.querySelector('#openWeb').onclick=()=>invoke('open_lichai');
+document.querySelector('#openWeb2').onclick=()=>invoke('open_lichai');
+document.querySelector('#settingsFromToday').onclick=()=>window.setLichAIMode('settings');
+document.querySelector('#aboutBtn').onclick=()=>invoke('open_about_page');
+document.querySelector('#quitBtn').onclick=()=>invoke('quit_app');
+document.querySelector('#autostart').onchange=e=>invoke('set_autostart',{enabled:e.target.checked});
+document.querySelector('#notify').onchange=e=>invoke('set_setting',{key:'notifications',value:e.target.checked});
+loadToday();
 </script>
 </body>
 </html>
