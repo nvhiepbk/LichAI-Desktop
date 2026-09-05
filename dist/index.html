@@ -45,6 +45,19 @@ html,body{margin:0;background:transparent!important;color:#f5f7fb;overflow:hidde
 .box .k{font-size:11px;opacity:.68;margin-bottom:4px}
 .box .v{font-size:12px;font-weight:700;line-height:1.35}
 .event{margin-top:10px;padding:9px 11px;border-radius:12px;background:rgba(214,45,45,.18);border:1px solid rgba(255,119,119,.24);font-size:12px;font-weight:700}
+.upcoming-toggle{width:100%;margin-top:10px;display:flex;align-items:center;justify-content:space-between;padding:9px 11px;background:rgba(255,255,255,.055)}
+.upcoming-toggle .label{font-weight:800}
+.upcoming-toggle .chev{font-size:16px;transition:transform .18s ease}
+.upcoming-toggle.open .chev{transform:rotate(180deg)}
+.upcoming-panel{margin-top:8px;border:1px solid rgba(255,255,255,.10);border-radius:13px;background:rgba(255,255,255,.035);overflow:hidden}
+.upcoming-head{padding:9px 11px 7px;font-size:11px;opacity:.62;border-bottom:1px solid rgba(255,255,255,.08)}
+.upcoming-list{max-height:190px;overflow:auto;padding:3px 8px 7px}
+.upcoming-item{display:grid;grid-template-columns:58px 1fr;gap:8px;padding:8px 3px;border-bottom:1px solid rgba(255,255,255,.075)}
+.upcoming-item:last-child{border-bottom:0}
+.upcoming-date{font-size:11px;font-weight:800;color:#f5bd57;line-height:1.35}
+.upcoming-title{font-size:12px;font-weight:750;line-height:1.35}
+.upcoming-meta{font-size:10px;opacity:.58;margin-top:2px}
+.upcoming-empty{padding:18px 10px;text-align:center;font-size:12px;opacity:.65}
 .actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
 button{border-radius:10px;border:1px solid rgba(255,255,255,.15);padding:9px 10px;background:#1c2330;color:#fff;cursor:pointer}
 button.primary{background:#2563eb;border-color:#2563eb;font-weight:800}
@@ -76,6 +89,11 @@ input[type=checkbox]{width:18px;height:18px}
         <div class="box"><div class="k">🧭 Hướng xuất hành tốt</div><div id="direction" class="v"></div></div>
       </div>
       <div id="event" class="event hidden"></div>
+      <button id="upcomingToggle" class="upcoming-toggle"><span class="label">📅 Sự kiện 30 ngày tới</span><span class="chev">⌄</span></button>
+      <div id="upcomingPanel" class="upcoming-panel hidden">
+        <div class="upcoming-head">Ngày lễ & sự kiện sắp diễn ra</div>
+        <div id="upcomingList" class="upcoming-list"></div>
+      </div>
       <div class="actions"><button class="primary" id="openWeb">Mở LịchAI</button><button id="settingsFromToday">Cài đặt</button></div>
     </div>
   </section>
@@ -102,12 +120,15 @@ input[type=checkbox]{width:18px;height:18px}
 const invoke = window.__TAURI__.core.invoke;
 const today = document.querySelector('#todayView');
 const settings = document.querySelector('#settingsView');
+const upcomingToggle = document.querySelector('#upcomingToggle');
+const upcomingPanel = document.querySelector('#upcomingPanel');
+let upcomingLoaded = false;
 const CURRENT_VERSION = '0.5.1';
 const UPDATE_INTERVAL = 24 * 60 * 60 * 1000;
 
 window.setLichAIMode = async (mode) => {
   if (mode === 'settings') {
-    today.classList.add('hidden'); settings.classList.remove('hidden'); await loadSettings();
+    await collapseUpcoming(); today.classList.add('hidden'); settings.classList.remove('hidden'); await loadSettings();
   } else {
     settings.classList.add('hidden'); today.classList.remove('hidden'); await loadToday();
   }
@@ -127,6 +148,40 @@ async function loadToday(){
     if(x.event){ev.textContent=x.event; ev.classList.remove('hidden')} else ev.classList.add('hidden');
   }catch(e){console.error(e)}
 }
+
+function relativeLabel(days){
+  if(days===0) return 'Hôm nay';
+  if(days===1) return 'Ngày mai';
+  return `Còn ${days} ngày`;
+}
+async function loadUpcoming(){
+  const list=document.querySelector('#upcomingList');
+  list.innerHTML='<div class="upcoming-empty">Đang tải…</div>';
+  try{
+    const items=await invoke('get_upcoming_events',{days:30});
+    if(!items.length){
+      list.innerHTML='<div class="upcoming-empty">Không có ngày lễ hoặc sự kiện nổi bật trong 30 ngày tới.</div>';
+    }else{
+      list.innerHTML=items.map(x=>`<div class="upcoming-item"><div class="upcoming-date">${x.date.slice(0,5)}<br>${relativeLabel(x.days_until)}</div><div><div class="upcoming-title">${x.title}</div><div class="upcoming-meta">${x.weekday} • ${x.lunar}</div></div></div>`).join('');
+    }
+    upcomingLoaded=true;
+  }catch(e){
+    console.error(e);
+    list.innerHTML='<div class="upcoming-empty">Chưa tải được danh sách sự kiện.</div>';
+  }
+}
+async function expandUpcoming(){
+  upcomingPanel.classList.remove('hidden');
+  upcomingToggle.classList.add('open');
+  await invoke('set_main_window_expanded',{expanded:true});
+  if(!upcomingLoaded) await loadUpcoming();
+}
+async function collapseUpcoming(){
+  upcomingPanel.classList.add('hidden');
+  upcomingToggle.classList.remove('open');
+  try{await invoke('set_main_window_expanded',{expanded:false})}catch(e){console.error(e)}
+}
+
 async function loadSettings(){
   try{
     document.querySelector('#autostart').checked=await invoke('autostart_status');
@@ -145,12 +200,17 @@ window.checkLichAIUpdate = async function(manual=false){
     if(hasUpdate){
       await invoke('show_main_window');
       await window.setLichAIMode('settings');
+      await invoke('set_main_window_expanded',{expanded:true});
       renderUpdate(true,latest,data.windows?.changes||[]);
     }else if(manual){
+      await invoke('set_main_window_expanded',{expanded:true});
       renderUpdate(false,CURRENT_VERSION,[]);
     }
   }catch(e){
-    if(manual) renderUpdate(null,'',[]);
+    if(manual){
+      await invoke('set_main_window_expanded',{expanded:true});
+      renderUpdate(null,'',[]);
+    }
   }
 }
 function compareVersions(a,b){
@@ -167,7 +227,7 @@ function renderUpdate(state,latest,changes){
     const items=changes.map(x=>`<li>${escapeHtml(String(x))}</li>`).join('');
     box.innerHTML=`<strong>Có phiên bản mới ${escapeHtml(latest)}</strong><div>Phiên bản hiện tại: ${CURRENT_VERSION}</div>${items?`<ul>${items}</ul>`:''}<div class="update-actions"><button class="primary" id="openDownload">Mở trang tải về</button><button id="dismissUpdate">Để sau</button></div>`;
     document.querySelector('#openDownload').onclick=()=>invoke('open_download_page');
-    document.querySelector('#dismissUpdate').onclick=()=>box.classList.add('hidden');
+    document.querySelector('#dismissUpdate').onclick=async()=>{box.classList.add('hidden');await invoke('set_main_window_expanded',{expanded:false})};
   }else if(state===false){
     box.innerHTML='<strong>Bạn đang dùng phiên bản mới nhất</strong><div>Lịch AI Desktop '+CURRENT_VERSION+' hiện đã là phiên bản mới nhất.</div>';
   }else{
@@ -179,6 +239,7 @@ document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>invoke('hide_
 document.querySelector('#openWeb').onclick=()=>invoke('open_lichai');
 document.querySelector('#openWeb2').onclick=()=>invoke('open_lichai');
 document.querySelector('#settingsFromToday').onclick=()=>window.setLichAIMode('settings');
+upcomingToggle.onclick=()=>upcomingPanel.classList.contains('hidden')?expandUpcoming():collapseUpcoming();
 document.querySelector('#aboutBtn').onclick=()=>invoke('open_about_page');
 document.querySelector('#quitBtn').onclick=()=>invoke('quit_app');
 document.querySelector('#autostart').onchange=e=>invoke('set_autostart',{enabled:e.target.checked});
