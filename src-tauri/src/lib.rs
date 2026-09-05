@@ -3,14 +3,15 @@ use std::{fs, path::PathBuf};
 use tauri::{
     menu::MenuBuilder,
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    AppHandle, LogicalSize, Manager, Runtime, Size,
+    AppHandle, Manager, Runtime,
 };
 use tauri_plugin_autostart::ManagerExt as AutostartManagerExt;
 use tauri_plugin_opener::OpenerExt;
-use chrono::{Datelike, Duration, Local, NaiveDate};
+use chrono::{Datelike, Local, NaiveDate};
 
 const BASE_URL: &str = "https://lich.ai.vn/";
 const ABOUT_URL: &str = "https://lich.ai.vn/about";
+const DOWNLOAD_URL: &str = "https://lich.ai.vn/?view=download";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct DesktopSettings {
@@ -36,15 +37,6 @@ struct DayInfo {
     good_hours: String,
     good_direction: String,
     event: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-struct UpcomingEvent {
-    date: String,
-    weekday: String,
-    lunar: String,
-    days_until: i64,
-    title: String,
 }
 
 fn settings_path<R: Runtime>(app: &AppHandle<R>) -> PathBuf {
@@ -101,6 +93,37 @@ fn open_about_page(app: AppHandle) {
 }
 
 #[tauri::command]
+fn open_download_page(app: AppHandle) {
+    let _ = app.opener().open_url(DOWNLOAD_URL, None::<&str>);
+}
+
+#[tauri::command]
+fn show_main_window(app: AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+}
+
+#[tauri::command]
+async fn fetch_update_manifest() -> Result<serde_json::Value, String> {
+    reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(8))
+        .build()
+        .map_err(|e| e.to_string())?
+        .get("https://lich.ai.vn/app/static/app-versions.json")
+        .header("Accept", "application/json")
+        .send()
+        .await
+        .map_err(|e| e.to_string())?
+        .error_for_status()
+        .map_err(|e| e.to_string())?
+        .json::<serde_json::Value>()
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 fn hide_main_window(app: AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.hide();
@@ -144,20 +167,6 @@ fn set_setting(app: AppHandle, key: String, value: bool) -> Result<(), String> {
 #[tauri::command]
 fn get_today_info() -> DayInfo {
     current_day_info()
-}
-
-#[tauri::command]
-fn get_upcoming_events(days: Option<i64>) -> Vec<UpcomingEvent> {
-    upcoming_events(days.unwrap_or(30).clamp(1, 90))
-}
-
-#[tauri::command]
-fn set_main_window_expanded(app: AppHandle, expanded: bool) -> Result<(), String> {
-    let window = app.get_webview_window("main").ok_or("Main window not found")?;
-    let height = if expanded { 648.0 } else { 398.0 };
-    window
-        .set_size(Size::Logical(LogicalSize::new(402.0, height)))
-        .map_err(|e| e.to_string())
 }
 
 // ----- Vietnamese lunar calendar (Ho Ngoc Duc / Meeus style, TZ +7) -----
@@ -325,89 +334,19 @@ fn feng_shui(jd: i32) -> (String, String) {
     (hours[chi_index as usize].iter().take(3).copied().collect::<Vec<_>>().join(" · "), hy[stem as usize].to_string())
 }
 
-fn weekday_vi(date: NaiveDate) -> String {
-    match date.weekday().num_days_from_monday() {
-        0 => "Thứ Hai", 1 => "Thứ Ba", 2 => "Thứ Tư", 3 => "Thứ Năm",
-        4 => "Thứ Sáu", 5 => "Thứ Bảy", _ => "Chủ Nhật"
-    }.to_string()
-}
-
-fn event_for_date(date: NaiveDate) -> Vec<String> {
-    let mut events = Vec::new();
-
-    // Các ngày lễ/sự kiện phổ biến theo dương lịch tại Việt Nam.
-    match (date.month(), date.day()) {
-        (1, 1) => events.push("🎆 Tết Dương lịch".to_string()),
-        (2, 3) => events.push("🏛️ Ngày thành lập Đảng Cộng sản Việt Nam".to_string()),
-        (2, 14) => events.push("❤️ Lễ Tình nhân Valentine".to_string()),
-        (3, 8) => events.push("🌷 Ngày Quốc tế Phụ nữ".to_string()),
-        (3, 26) => events.push("🌱 Ngày thành lập Đoàn TNCS Hồ Chí Minh".to_string()),
-        (4, 30) => events.push("🇻🇳 Ngày Giải phóng miền Nam, thống nhất đất nước".to_string()),
-        (5, 1) => events.push("🛠️ Ngày Quốc tế Lao động".to_string()),
-        (5, 19) => events.push("⭐ Ngày sinh Chủ tịch Hồ Chí Minh".to_string()),
-        (6, 1) => events.push("🧒 Ngày Quốc tế Thiếu nhi".to_string()),
-        (6, 21) => events.push("👨 Ngày của Cha".to_string()),
-        (6, 28) => events.push("👨‍👩‍👧‍👦 Ngày Gia đình Việt Nam".to_string()),
-        (7, 27) => events.push("🎖️ Ngày Thương binh - Liệt sĩ".to_string()),
-        (8, 19) => events.push("🛡️ Ngày truyền thống Công an nhân dân".to_string()),
-        (9, 2) => events.push("🇻🇳 Ngày Quốc Khánh Việt Nam".to_string()),
-        (10, 10) => events.push("🏙️ Ngày Giải phóng Thủ đô".to_string()),
-        (10, 20) => events.push("🌹 Ngày Phụ nữ Việt Nam".to_string()),
-        (11, 20) => events.push("📚 Ngày Nhà giáo Việt Nam".to_string()),
-        (12, 22) => events.push("🎖️ Ngày thành lập Quân đội Nhân dân Việt Nam".to_string()),
-        (12, 24) => events.push("🎄 Đêm Giáng Sinh".to_string()),
-        (12, 25) => events.push("🎄 Lễ Giáng Sinh".to_string()),
-        _ => {}
-    }
-
-    // Các ngày lễ truyền thống theo âm lịch.
-    let lunar = solar_to_lunar(date.day() as i32, date.month() as i32, date.year());
-    if !lunar.leap {
-        match (lunar.month, lunar.day) {
-            (1, 1) => events.push("🧧 Tết Nguyên Đán".to_string()),
-            (1, 15) => events.push("🏮 Tết Nguyên Tiêu".to_string()),
-            (3, 10) => events.push("🙏 Giỗ Tổ Hùng Vương".to_string()),
-            (4, 15) => events.push("🪷 Lễ Phật Đản".to_string()),
-            (5, 5) => events.push("🌿 Tết Đoan Ngọ".to_string()),
-            (7, 15) => events.push("🙏 Lễ Vu Lan".to_string()),
-            (8, 15) => events.push("🥮 Tết Trung Thu".to_string()),
-            (12, 23) => events.push("🐟 Tết Ông Công Ông Táo".to_string()),
-            _ => {}
-        }
-    }
-
-    events
-}
-
-fn upcoming_events(days: i64) -> Vec<UpcomingEvent> {
-    let today = Local::now().date_naive();
-    let mut result = Vec::new();
-
-    for offset in 0..=days {
-        let Some(date) = today.checked_add_signed(Duration::days(offset)) else { continue; };
-        let lunar = solar_to_lunar(date.day() as i32, date.month() as i32, date.year());
-        let leap = if lunar.leap { " nhuận" } else { "" };
-        for title in event_for_date(date) {
-            result.push(UpcomingEvent {
-                date: format!("{:02}/{:02}/{}", date.day(), date.month(), date.year()),
-                weekday: weekday_vi(date),
-                lunar: format!("Âm {}/{}{}", lunar.day, lunar.month, leap),
-                days_until: offset,
-                title,
-            });
-        }
-    }
-    result
-}
-
 fn current_day_info() -> DayInfo {
     let now = Local::now();
     let date = NaiveDate::from_ymd_opt(now.year(), now.month(), now.day()).unwrap();
     let lunar = solar_to_lunar(now.day() as i32, now.month() as i32, now.year());
-    let weekday = weekday_vi(date);
+    let weekday = match date.weekday().num_days_from_monday() {
+        0 => "Thứ Hai", 1 => "Thứ Ba", 2 => "Thứ Tư", 3 => "Thứ Năm",
+        4 => "Thứ Sáu", 5 => "Thứ Bảy", _ => "Chủ Nhật"
+    }.to_string();
     let leap = if lunar.leap { " nhuận" } else { "" };
     let (good_hours, good_direction) = feng_shui(lunar.jd);
-    let event = event_for_date(date).into_iter().next();
+    let event = if now.month() == 9 && now.day() == 2 {
+        Some("🇻🇳 Ngày Quốc Khánh Việt Nam".to_string())
+    } else { None };
 
     DayInfo {
         day: now.day(),
@@ -430,6 +369,7 @@ fn build_tray<R: Runtime>(app: &tauri::App<R>) -> tauri::Result<()> {
         .text("open_home", "🌐 Mở LịchAI")
         .separator()
         .text("settings", "⚙️ Cài đặt")
+        .text("check_update", "🔄 Kiểm tra cập nhật")
         .build()?;
 
     let info = current_day_info();
@@ -444,6 +384,12 @@ fn build_tray<R: Runtime>(app: &tauri::App<R>) -> tauri::Result<()> {
             "about" => open_about(app),
             "open_home" => open_home(app),
             "settings" => show_mode(app, "settings"),
+            "check_update" => {
+                show_mode(app, "settings");
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.eval("window.checkLichAIUpdate && window.checkLichAIUpdate(true);");
+                }
+            }
             _ => {}
         })
         .on_tray_icon_event(|tray, event| {
@@ -470,15 +416,16 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             open_lichai,
             open_about_page,
+            open_download_page,
+            show_main_window,
+            fetch_update_manifest,
             hide_main_window,
             quit_app,
             autostart_status,
             set_autostart,
             get_settings,
             set_setting,
-            get_today_info,
-            get_upcoming_events,
-            set_main_window_expanded
+            get_today_info
         ])
         .setup(|app| {
             build_tray(app)?;
